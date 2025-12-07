@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>APHB - Aplikace Pro Hustý Borce (v12.0)</title>
+    <style>
+        :root {
+            --bg: #050505;
+            --panel: #0f0f0f;
+            --border: #222;
+            --text-main: #eeeeee;
+            --text-dim: #666;
+            --accent: #FFD700; /* Gold */
+            --danger: #ff3333;
+            --font-ui: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            --font-mono: 'Courier New', monospace;
+        }
+
+        /* THEMES */
+        body[data-color="neon"] { --accent: #00ff9d; }
+        body[data-color="purple"] { --accent: #d000ff; }
+
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: var(--font-ui);
+            overflow: hidden; 
+            height: 100vh;
+            cursor: default;
+            user-select: none;
+            display: flex; flex-direction: column;
+        }
+
+        /* --- FX CANVAS --- */
+        #fx-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9000; }
+
+        /* --- HUD --- */
+        #hud {
+            height: 70px; flex-shrink: 0;
+            background: linear-gradient(180deg, #000 0%, rgba(0,0,0,0) 100%);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 20px; border-bottom: 1px solid rgba(255,255,255,0.03);
+            z-index: 100;
+        }
+        .hud-val { font-family: var(--font-mono); font-weight: 900; font-size: 20px; color: var(--accent); letter-spacing: -1px; }
+        .hud-label { font-size: 10px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 2px; }
+        #level-badge {
+            background: var(--accent); color: #000; padding: 6px 15px;
+            font-weight: 900; text-transform: uppercase; font-size: 13px;
+            box-shadow: 0 0 20px var(--accent); border-radius: 2px;
+            white-space: nowrap;
+        }
+
+        /* --- GRID LAYOUT --- */
+        .app-grid {
+            flex: 1; display: grid;
+            grid-template-columns: 300px 1fr 300px;
+            overflow: hidden; position: relative;
+        }
+
+        .col-left { border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 0 20px 20px; }
+        .col-right { border-left: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 20px 20px 0; }
+        .col-center { display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+
+        .panel-header {
+            font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 3px;
+            padding-bottom: 10px; border-bottom: 1px solid var(--border); margin-bottom: 15px; opacity: 0.8;
+        }
+
+        /* --- TIMELINE --- */
+        #timeline-wrapper { flex: 1; overflow-y: auto; padding-right: 10px; scrollbar-width: none; }
+        #timeline-wrapper::-webkit-scrollbar { display: none; }
+        .t-item { position: relative; margin-bottom: 25px; padding-left: 20px; border-left: 1px solid #333; animation: slideInLeft 0.5s; }
+        .t-item::before {
+            content: ''; position: absolute; left: -5px; top: 6px; width: 9px; height: 9px;
+            background: var(--bg); border: 1px solid var(--accent); border-radius: 50%;
+            box-shadow: 0 0 8px rgba(255, 215, 0, 0.1);
+        }
+        .t-time { font-size: 10px; color: #555; font-family: var(--font-ui); font-style: italic; }
+        .t-title { font-size: 13px; font-weight: bold; color: #ddd; margin-top: 2px; }
+        .t-desc { font-size: 12px; color: #888; margin-top: 2px; line-height: 1.3; }
+
+        /* --- RECORDS --- */
+        #records-wrapper { display: flex; flex-direction: column; gap: 15px; }
+        .record-item { text-align: right; padding: 10px; border-right: 2px solid #333; transition: border-color 0.3s; }
+        .record-item:hover { border-color: var(--accent); }
+        .rec-label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+        .rec-val { font-size: 18px; color: var(--text-main); font-weight: bold; margin: 4px 0; font-family: var(--font-mono); }
+
+        /* --- CENTER ACTION --- */
+        .center-content { text-align: center; z-index: 10; width: 100%; margin-top: -100px; display: flex; flex-direction: column; align-items: center;}
+        
+        h1 { font-weight: 300; letter-spacing: 6px; font-size: 2.2em; margin-bottom: 10px; }
+        .subtitle { color: var(--text-dim); font-size: 12px; margin-bottom: 40px; min-height: 15px;}
+
+        /* Ghost Typing Display (Desktop) */
+        #ghost-input-display {
+            font-family: var(--font-mono); font-size: 24px; color: var(--accent);
+            min-height: 30px; margin-bottom: 30px; letter-spacing: 2px;
+            text-shadow: 0 0 10px var(--accent); opacity: 0; transition: opacity 0.2s;
+        }
+
+        /* Mobile Input Trigger */
+        #mobile-input-trigger {
+            display: none; /* Hidden on desktop */
+            background: rgba(255,255,255,0.05); border: 1px solid #333; padding: 15px;
+            color: #888; width: 80%; max-width: 300px; text-align: center; border-radius: 4px;
+            margin-bottom: 20px; font-size: 14px;
+        }
+        #mobile-real-input { opacity: 0; position: absolute; z-index: -1; }
+
+        .btn-action {
+            background: transparent; border: 1px solid var(--accent); color: var(--accent);
+            padding: 15px 50px; font-weight: bold; cursor: pointer; letter-spacing: 3px;
+            font-size: 16px; transition: 0.2s; text-transform: uppercase;
+        }
+        .btn-action:hover { background: var(--accent); color: black; box-shadow: 0 0 40px var(--accent); }
+
+        /* --- RPM GAUGE --- */
+        #rpm-container {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: 220px; height: 110px; pointer-events: none; opacity: 1; transition: opacity 0.5s;
+        }
+        #rpm-svg { width: 100%; height: 100%; overflow: visible; }
+        .gauge-bg { fill: none; stroke: #1a1a1a; stroke-width: 12; stroke-linecap: round; }
+        .gauge-needle { 
+            transform-origin: 110px 110px; transition: transform 0.05s linear; 
+            fill: var(--accent); filter: drop-shadow(0 0 8px var(--accent)); 
+        }
+        .rpm-text {
+            position: absolute; bottom: 0; width: 100%; text-align: center;
+            font-family: var(--font-mono); font-size: 10px; color: #444; letter-spacing: 2px;
+        }
+
+        /* --- RESPONSIVE DESIGN (MOBILE FIX) --- */
+        @media (max-width: 900px) {
+            body { overflow-y: auto; height: auto; min-height: 100vh; }
+            .app-grid { display: flex; flex-direction: column; overflow: visible; }
+            
+            /* Order: Header -> Center -> Timeline -> Records */
+            .col-center { order: 1; margin: 80px 0 20px 0; /* More top margin to avoid overlap */ }
+            .col-left { order: 2; border: none; border-top: 1px solid #222; padding: 20px; height: 300px; }
+            .col-right { order: 3; border: none; border-top: 1px solid #222; padding: 20px; }
+
+            /* Gauge moves UNDER the button and smaller */
+            #rpm-container { 
+                position: relative; 
+                bottom: auto; left: auto; transform: none; 
+                margin-top: 30px; 
+                transform: scale(0.7);
+            }
+            
+            #mobile-input-trigger { display: block; }
+            #ghost-input-display { display: none; } 
+            
+            h1 { font-size: 1.8em; }
+            .btn-action { width: 80%; padding: 15px 0; }
+        }
+
+        /* --- TOASTS & FLOATING --- */
+        .floating-text {
+            position: fixed; pointer-events: none; font-weight: 900; animation: floatUp linear forwards;
+            z-index: 8000; text-shadow: 0 2px 4px black; white-space: nowrap;
+        }
+        @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-60px) scale(1.05); opacity: 0; } }
+
+        #toast-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 2000; }
+        .toast {
+            background: #0a0a0a; border-left: 3px solid var(--accent); padding: 15px; width: 280px;
+            color: #eee; box-shadow: 0 10px 50px rgba(0,0,0,0.8); animation: slideIn 0.3s;
+            border: 1px solid #222;
+        }
+        .toast.gold { border: 1px solid var(--accent); background: #120f00; }
+        .toast h4 { margin: 0 0 5px 0; color: var(--accent); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+        .toast p { margin: 0; font-size: 13px; color: #bbb; line-height: 1.4; }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        @keyframes slideInLeft { from { transform: translateX(-20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* --- MODALS --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.96);
+            display: none; justify-content: center; align-items: center; z-index: 5000;
+        }
+        .card { background: #050505; border: 1px solid var(--accent); padding: 40px; text-align: center; max-width: 90%; width: 400px; box-shadow: 0 0 100px rgba(0,0,0,1); }
+        
+        .confirm-card { background: #0a0505; border: 1px solid var(--danger); padding: 40px; text-align: center; max-width: 500px; box-shadow: 0 0 50px rgba(255, 51, 51, 0.2); }
+        .confirm-card h2 { color: var(--danger); font-size: 28px; margin: 0 0 20px 0; text-transform: uppercase; }
+        
+        .dev-console { width: 700px; max-width: 95%; max-height: 85vh; background: #0f0f0f; border: 1px solid var(--accent); display: flex; flex-direction: column; color: white; box-shadow: 0 0 150px rgba(0,0,0,1); }
+        .dev-header { padding: 15px; border-bottom: 1px solid #333; display:flex; justify-content:space-between; align-items:center; background: #151515;}
+        .dev-body { flex: 1; overflow-y: auto; }
+        details { border-bottom: 1px solid #222; }
+        summary { padding: 15px; cursor: pointer; background: #111; font-size: 12px; text-transform: uppercase; color: #888; }
+        .dev-section-content { padding: 20px; background: #0a0a0a; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .control-row { margin-bottom: 15px; }
+        .control-row label { display: block; font-size: 11px; color: #666; margin-bottom: 5px; }
+        input[type="range"] { width: 100%; }
+        .dev-footer { padding: 15px; border-top: 1px solid #333; background: #151515; display:flex; justify-content:flex-end; gap: 10px; }
+        .btn-mini { background: #333; color: white; border: 1px solid #555; padding: 8px 15px; cursor: pointer; font-size: 11px; }
+        .btn-mini.save { background: var(--accent); color: black; border-color: var(--accent); font-weight: bold; }
+
+        /* Help & Reset Links */
+        .reset-link { position: fixed; bottom: 10px; left: 10px; font-size: 10px; color: #444; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; z-index: 4000; }
+        .reset-link:hover { color: var(--danger); }
+        
+        .help-link { position: fixed; bottom: 10px; right: 10px; font-size: 16px; color: #444; cursor: pointer; z-index: 4000; width: 20px; height: 20px; text-align: center; border: 1px solid #444; border-radius: 50%; line-height: 18px; }
+        .help-link:hover { color: var(--accent); border-color: var(--accent); }
+
+        .help-content { text-align: left; max-height: 60vh; overflow-y: auto; color: #ccc; font-size: 13px; line-height: 1.6; }
+        .help-content h3 { color: var(--accent); margin-top: 20px; border-bottom: 1px solid #333; }
+        .help-content li { margin-bottom: 5px; }
+
+    </style>
+</head>
+<body data-color="gold">
+
+    <canvas id="fx-canvas"></canvas>
+
+    <div id="hud">
+        <div>
+            <div class="hud-label">RESPEKT</div>
+            <div class="hud-val" id="val-respect">0</div>
+        </div>
+        <div id="level-badge">NULA</div>
+        <div style="text-align:right">
+            <div class="hud-label">BODY</div>
+            <div class="hud-val" id="val-score">0</div>
+        </div>
+    </div>
+
+    <div class="app-grid">
+        
+        <!-- LEFT: Timeline -->
+        <div class="col-left">
+            <div class="panel-header">Log Aktivity</div>
+            <div id="timeline-wrapper"></div>
+        </div>
+
+        <!-- CENTER: Main -->
+        <div class="col-center">
+            <div class="center-content">
+                <h1>APHB <span style="color:var(--accent); font-weight:900">V12.0</span></h1>
+                <div class="subtitle" id="subtitle">Exekutivní nástroj pro správu ega</div>
+                
+                <!-- Desktop Ghost Input Display -->
+                <div id="ghost-input-display"></div>
+
+                <!-- Mobile Trigger -->
+                <div id="mobile-input-trigger" onclick="focusMobileInput()">Napiš cokoliv borče...</div>
+                <input type="text" id="mobile-real-input" autocomplete="off">
+
+                <button class="btn-action" id="btn-action">KLIKEJ BORČE</button>
+            </div>
+
+            <!-- RPM GAUGE -->
+            <div id="rpm-container">
+                <svg id="rpm-svg" viewBox="0 0 220 110">
+                    <path d="M 20 110 A 90 90 0 0 1 200 110" class="gauge-bg" />
+                    <polygon points="110,110 106,20 110,15 114,20" class="gauge-needle" id="needle" />
+                </svg>
+                <div class="rpm-text">VÝKON</div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Records -->
+        <div class="col-right">
+            <div class="panel-header" style="text-align:right">Síň Slávy</div>
+            <div id="records-wrapper">
+                <div class="record-item">
+                    <div class="rec-label">Největší Skóre</div>
+                    <div class="rec-val" id="rec-score">0</div>
+                </div>
+                <div class="record-item">
+                    <div class="rec-label">Počet Kliků</div>
+                    <div class="rec-val" id="rec-clicks">0</div>
+                </div>
+                <div class="record-item">
+                    <div class="rec-label">Nascrollováno</div>
+                    <div class="rec-val" id="rec-scroll">0</div>
+                </div>
+                <div class="record-item">
+                    <div class="rec-label">Vzdálenost</div>
+                    <div class="rec-val" id="rec-move">0</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="reset-link" onclick="openModal('reset-modal')">RESTARTOVAT KARIÉRU</div>
+    <div class="help-link" onclick="openModal('help-modal')">?</div>
+    <div id="toast-container"></div>
+
+    <!-- MODALS -->
+    <div id="lvl-modal" class="modal-overlay">
+        <div class="card">
+            <h2 style="color:var(--accent); margin-bottom:10px;">JUBILEUM!</h2>
+            <p id="lvl-text" style="color:#ccc; margin-bottom:30px; font-size:16px; line-height:1.6;">...</p>
+            <button class="btn-action" onclick="closeModal('lvl-modal')" style="padding:12px 40px; font-size:12px;">BERU NA VĚDOMÍ</button>
+        </div>
+    </div>
+
+    <div id="reset-modal" class="modal-overlay">
+        <div class="confirm-card">
+            <h2>POZOR, BORČE!</h2>
+            <p style="color:#888; margin-bottom:40px;">Chystáš se smazat celý svůj legendární výkon.<br>Historie se na nic neptá, ale my ano. Opravdu to chceš?</p>
+            <div style="display:flex; justify-content:center; gap:20px; flex-wrap:wrap;">
+                <button class="btn-mini" onclick="closeModal('reset-modal')" style="background:transparent; padding:15px 30px; font-size:12px; border-color:#666; width:180px;">NE, ZAZMATKOVAL JSEM</button>
+                <button class="btn-mini" onclick="confirmReset()" style="background:var(--danger); border-color:var(--danger); padding:15px 30px; font-size:12px; width:180px;">ANO, SMAZAT VŠE</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="help-modal" class="modal-overlay">
+        <div class="card" style="width:600px; text-align:left;">
+            <h2 style="color:var(--accent); text-align:center; margin-bottom:20px;">NÁVOD PRO BORCE</h2>
+            <div class="help-content">
+                <p>Gratulujeme. Právě jste spustili jediný software na světě, který vás ocení tak, jak si zasloužíte.</p>
+                <h3>1. Jak získat body</h3>
+                <ul>
+                    <li><strong>Hýbej myší:</strong> I malý pohyb se počítá.</li>
+                    <li><strong>Klikej:</strong> Levé i pravé tlačítko.</li>
+                    <li><strong>Piš:</strong> Jen tak do vzduchu (na PC) nebo do pole (mobil).</li>
+                    <li><strong>Scroluj:</strong> Toč kolečkem jako o život.</li>
+                </ul>
+                <h3>2. Otáčkoměr</h3>
+                <p>Ten budík dole ukazuje vaši aktuální "pracovní" aktivitu. Dostaňte ho do červených!</p>
+                <h3>3. Tajné funkce</h3>
+                <p>Aplikace má uši. Pokud napíšete heslo <strong>"to je borec"</strong>, otevře se vývojářská konzole pro úpravu barev a obtížnosti.</p>
+            </div>
+            <div style="text-align:center; margin-top:20px;">
+                <button class="btn-mini" onclick="closeModal('help-modal')">ZAVŘÍT</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DEV CONSOLE -->
+    <div id="dev-modal" class="modal-overlay">
+        <div class="dev-console">
+            <div class="dev-header">
+                <span style="color:var(--accent); font-weight:bold;">DEV KONZOLE</span>
+                <span style="font-size:10px; color:#555;">v12.0</span>
+            </div>
+            <div class="dev-body">
+                <details open>
+                    <summary>HLAVNÍ NASTAVENÍ</summary>
+                    <div class="dev-section-content">
+                        <div>
+                            <div class="control-row"><label>Zobrazit Otáčkoměr</label><input type="checkbox" id="t-gauge"></div>
+                            <div class="control-row"><label>Povolit Ohňostroj</label><input type="checkbox" id="t-particles"></div>
+                        </div>
+                        <div>
+                            <div class="control-row">
+                                <label>Barevné Téma</label>
+                                <select id="sel-theme" style="width:100%; padding:5px; background:#222; color:white; border:1px solid #333;">
+                                    <option value="gold">Zlatá (Gold)</option>
+                                    <option value="neon">Neon (Cyber)</option>
+                                    <option value="purple">Purpurová (Royal)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+                <details>
+                    <summary>BALANCE</summary>
+                    <div class="dev-section-content">
+                        <div>
+                            <div class="control-row"><label>Násobič Bodů <span id="disp-mult" style="color:var(--accent); float:right">x1.0</span></label><input type="range" min="0.1" max="10" step="0.1" id="rng-mult"></div>
+                        </div>
+                        <div>
+                            <div class="control-row"><label>Toast Cooldown (s) <span id="disp-tcd" style="color:var(--accent); float:right">15s</span></label><input type="range" min="1" max="60" id="rng-tcd"></div>
+                        </div>
+                    </div>
+                </details>
+            </div>
+            <div class="dev-footer">
+                <button class="btn-mini" onclick="closeModal('dev-modal')">ZRUŠIT</button>
+                <button class="btn-mini save" onclick="saveDev()">ULOŽIT ZMĚNY</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. DATA (FULL LISTS) ---
+        const phrases = {
+            general: [
+                "Nečekaně excelentní.", "Hustý!", "Legendární!", "Kdyby tě viděl Masaryk...", 
+                "Píšeš historii.", "Totálně zabitý.", "Epický moment.", "Z nuly na sto!", 
+                "100% nelegální výkon!", "Mega nakopávač zadků!", "Štěstí, že ani neví, že neví.", 
+                "Nejsi žádnej borec. Jsi bomba borec.", "Tohle je jiný vesmír.", 
+                "Vidím tam proaktivní přístup a tah na branku.", "KPIčka rostou.", 
+                "To je, s prominutím, holý nesmysl... aby byl někdo tak dobrý.", 
+                "Fajne to robiš, synek.", "Tož to je iná káva.", "Valíš to jak drak po D1, ale bez kolon.",
+                "Tohle nebylo špatný. Na funkci rostlináře to ale nebude.", 
+                "Rozkaz zněl jasně: Být nejlepší.", "Hasta la vista, nudo.", "Je to rebel!",
+                "Houston nemá problém. Ty jsi ho vyřešil.", "Kde udělali soudruzi z NDR chybu? Nikde."
+            ],
+            actions: [
+                "Klikáš jako bůh.", "Myš prosí o milost.", "Pravý klik - fajnšmekr.", "Klávesnice hoří.", 
+                "Jedeš bomby.", "Chirurgicky přesný.", "Tvoje synergie s myší je příkladná.", 
+                "Tohle scrollování má tah.", "A2B model jak vyšitý.", "Nekecaj a makaj... a ty makáš královsky.",
+                "Tlačítko kapitulovalo.", "Ten mě vyskroloval jako ještě nikdy nikdo!"
+            ],
+            titles: {
+                start: ["NOVÝ ZAČÁTEK", "TADY TO ZAČALO", "ZROZENÍ LEGENDY", "STARTUJEME"],
+                level: ["ZLEPŠUJEŠ SE!", "NOVÝ LEVEL", "FAKT HUSTÝ", "MASAKR", "ZLOMOVÝ MOMENT", "LEVEL UP", "DALŠÍ META"]
+            },
+            slogans: [
+                "Exekutivní nástroj pro správu ega",
+                "Měříme jen to, na čem záleží",
+                "Protože si to zasloužíš",
+                "Jediný software, který tě chápe",
+                "Produktivita je přežitek",
+                "Vítej v epicentru úspěchu",
+                "Každý pixel se počítá"
+            ]
+        };
+
+        const ranks = [
+            "ZAČÁTEČNÍK", "SNAŽIVEC", "NEÚNAVNÝ", "ADEPT", "NEBOJÁCNÝ", "POZORUHODNÝ", "NADĚJNÝ", "POHODÁŘ", "OBJEV ROKU", "VZÁCNÝ EXEMPLÁŘ",
+            "JEDINEČNÝ", "ZAJÍMAVÝ", "OBDIVUHODNÝ", "DOBRÁK", "CHLAPÍK", "FRAJER", "VELKEJ FRAJER", "KROTITEL ÚSPĚCHU", "ZLATÍČKO", "ŠIKULA",
+            "MÍSTNÍ CELEBRITA", "IDOL", "STAROSTA", "MÍSTNÍ CÍSAŘ", "SEKRETÁŘKA OSUDU", "KRUŤÁK", "HUSŤÁK", "DRSŇÁK", "OSTREJ ŘÍZEK", "SEKAČ HLAV",
+            "ŠÉF", "VELKO VEZÍR", "BOSS", "BIG BOSS", "ŘEDITEL", "GENERÁLNÍ GENERÁL", "MANAŽER GALAXIE", "PROFESIONÁL", "EXPERT", "VIRTUÓZ",
+            "BOREC", "HUSTEJ BOREC", "MEGA BOREC", "BOMBA BOREC", "ULTRA-SULTÁN", "GANSTER", "MAFIÁN", "KMOTR", "DOVEDNOSTNÍ OLIGARCHA", "KRUTOR",
+            "BOJOVNÍK", "ZABIJÁK", "LOVEC ODMĚN", "NAKOPÁVAČ PRDELÍ", "KROTITEL SNŮ", "NEPORAZITELNÝ", "NEPŘEMOŽITELNÝ", "NEZASTAVITELNÝ", "BOMBAŘ", "EXTRÉMISTA",
+            "ŠÍLENĚ SEXY", "NEODOLATELNÝ", "DOKONALÝ MUŽ", "MAGNET NA ÚSPĚCH", "TOP STROP TYP", "LUXUSNÍ ZÁLEŽITOST", "VIP", "SUPERSTÁR", "CELEBRITA VESMÍRU", "PRINCEZNA (I KDYŽ JSI CHLAP)",
+            "LEGENDA", "ŽIVOUCÍ LEGENDA", "MÝTUS", "KULT OSOBNOSTI", "GOAT", "CHLAP CO SE S NIČÍM NESERE", "VZOROVÝ ČLOVĚK", "SYN ÚSPĚCHU", "PAN DOKONALÝ", "PRINC VŠEUMĚL",
+            "NADPŘIROZENÝ", "KOUZELNÍK", "ČARODĚJ", "SPASITEL", "PROROK", "NENASYTNÝ", "VŠEVĚDOUCÍ", "NADČLOVĚK", "SKORO BŮH", "POLOBŮH",
+            "BŮH", "BOŽÍ TÝPEK", "VLÁDCE VŠECH MOŘÍ", "ŘEDITEL VESMÍRU", "STRÁŽCE ČASU", "NEJVĚTŠÍ Z NEJVĚTŠÍCH", "NEJDOKONALEJŠÍ", "ABSOLUTNÍ JEDNIČKA", "TOTÁLNÍ HROT", "ALPHA OMEGA",
+            "CHUCK NORRIS", "GIGACHAD", "VESMÍRNÁ ENTITA"
+        ];
+
+        // --- 2. CONFIG & STATE ---
+        const DEFAULTS = { theme: 'gold', showGauge: true, particles: true, multiplier: 1.0, toastCd: 15, movePts: true, floatSize: 16, floatDur: 2.0 };
+        let config = JSON.parse(localStorage.getItem('aphb_v12_cfg')) || JSON.parse(JSON.stringify(DEFAULTS));
+        let records = JSON.parse(localStorage.getItem('aphb_v12_rec')) || { score: 0, clicks: 0, scroll: 0, move: 0 };
+        let state = { score: 0, respect: 0, level: 0, modalOpen: false, timers: { toast: 0 }, gauge: { current: 0, velocity: 0 }, timelineItems: [] };
+
+        // --- 3. CORE LOGIC ---
+        function triggerAction(type, val = 1) {
+            if (state.modalOpen) return;
+
+            // Gauge Physics
+            let impulse = type === 'click' ? 15 : (type === 'type' ? 10 : (type === 'scroll' ? 5 : Math.min(5, val/20)));
+            state.gauge.velocity = Math.min(100, state.gauge.velocity + impulse);
+
+            // Scoring
+            let pts = 0;
+            if (type === 'move') {
+                if (config.movePts) pts = Math.max(1, Math.ceil(Math.log(val+1))); // Ensure > 0
+            } else {
+                pts = Math.ceil((Math.random() * 8 + 4));
+            }
+            pts = Math.max(1, Math.floor(pts * config.multiplier));
+
+            state.score += pts; state.respect += config.multiplier;
+
+            // Records
+            if(state.score > records.score) records.score = state.score;
+            if(type === 'click' || type === 'right-click') records.clicks++;
+            if(type === 'scroll') records.scroll += val;
+            if(type === 'move') records.move += val;
+            saveRecords();
+
+            updateHUD();
+
+            // Visuals
+            if (Math.random() < 0.2 && type !== 'move') spawnFloat(`+${pts}`);
+            
+            const now = Date.now();
+            if (now - state.timers.toast > config.toastCd * 1000) {
+                if (type !== 'move' || Math.random() < 0.05) {
+                    showToast("INFO", getRandom(phrases.actions));
+                    state.timers.toast = now;
+                    if(Math.random() < 0.4) addToTimeline("HLÁŠKA", getRandom(phrases.general), false);
+                }
+            }
+        }
+
+        // --- 4. TIMELINE SYSTEM ---
+        function addToTimeline(titleType, desc, highlight=false) {
+            if(!highlight && Math.random() > 0.3) return;
+            
+            // Randomize Title
+            let title = titleType;
+            if (titleType === "LEVEL UP") title = getRandom(phrases.titles.level);
+            if (titleType === "START") title = getRandom(phrases.titles.start);
+            
+            const w = document.getElementById('timeline-wrapper');
+            const el = document.createElement('div');
+            el.className = 't-item';
+            
+            const timestamp = Date.now();
+            el.dataset.time = timestamp; // Store for relative update
+            
+            el.innerHTML = `<div class="t-time">Před chvílí</div><div class="t-title">${title}</div><div class="t-desc">${desc}</div>`;
+            w.insertBefore(el, w.firstChild);
+            if(w.children.length > 15) w.removeChild(w.lastChild);
+        }
+
+        function updateRelativeTimes() {
+            const items = document.querySelectorAll('.t-item');
+            const now = Date.now();
+            items.forEach(el => {
+                const ts = parseInt(el.dataset.time);
+                const diff = Math.floor((now - ts) / 1000);
+                let text = "Před chvílí";
+                if (diff > 59) text = `Před ${Math.floor(diff/60)} min`;
+                if (diff > 3600) text = `Před ${Math.floor(diff/3600)} hod`;
+                el.querySelector('.t-time').innerText = text;
+            });
+        }
+        setInterval(updateRelativeTimes, 30000); // 30s refresh
+
+        // --- 5. GAUGE & HUD ---
+        function gaugePhysics() {
+            state.gauge.current += state.gauge.velocity * 0.1;
+            state.gauge.velocity *= 0.92; state.gauge.current *= 0.98;
+            state.gauge.current = Math.min(100, Math.max(0, state.gauge.current));
+            const deg = (state.gauge.current / 100) * 180 - 90;
+            const needle = document.getElementById('needle');
+            if(needle) needle.style.transform = `rotate(${Math.max(-90, Math.min(90, deg))}deg)`;
+            requestAnimationFrame(gaugePhysics);
+        }
+        gaugePhysics();
+
+        function updateHUD() {
+            document.getElementById('val-score').innerText = formatNum(state.score);
+            document.getElementById('val-respect').innerText = formatNum(state.respect);
+            document.getElementById('rec-score').innerText = formatBig(records.score);
+            document.getElementById('rec-clicks').innerText = formatBig(records.clicks);
+            document.getElementById('rec-scroll').innerText = formatBig(records.scroll, 'px');
+            document.getElementById('rec-move').innerText = formatBig(Math.floor(records.move / 3779), 'm');
+
+            let needed = 3000 + (state.level * state.level * 800);
+            if (state.score > needed) {
+                state.level++;
+                const r = ranks[Math.min(state.level, ranks.length-1)];
+                document.getElementById('level-badge').innerText = r;
+                if(config.particles) fireConfetti();
+                
+                if (state.level % 10 === 0) {
+                    document.getElementById('lvl-text').innerText = `Dosáhl jsi jubilejní úrovně ${state.level}.\nTitul: ${r}`;
+                    openModal('lvl-modal');
+                } else {
+                    showToast("LEVEL UP", `Jsi nyní: ${r}`, true);
+                }
+                addToTimeline("LEVEL UP", `Nový titul: ${r}`, true);
+            }
+        }
+
+        // --- 6. HELPERS ---
+        function formatNum(n) { return Math.floor(n).toLocaleString(); }
+        function formatBig(n, u='') {
+            if(n > 1000000) return `${(n/1000000).toFixed(2)}M ${u}`;
+            if(n > 10000) return `${(n/1000).toFixed(1)}k ${u}`;
+            return `${Math.floor(n)} ${u}`;
+        }
+        function getRandom(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+
+        // --- 7. INPUTS & KEYLOGGER ---
+        let keyBuffer = "";
+        let ghostText = ""; let ghostTimer;
+
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.altKey || e.metaKey || state.modalOpen) return;
+            if (e.key.length === 1) handleTyping(e.key);
+        });
+
+        document.getElementById('mobile-real-input').addEventListener('input', (e) => {
+            if (e.target.value.length > 0) {
+                handleTyping(e.target.value.slice(-1));
+                e.target.value = "";
+            }
+        });
+        function focusMobileInput() { document.getElementById('mobile-real-input').focus(); }
+
+        function handleTyping(char) {
+            triggerAction('type');
+            keyBuffer += char.toLowerCase();
+            if (keyBuffer.length > 20) keyBuffer = keyBuffer.slice(-20);
+            if (keyBuffer.endsWith("to je borec")) { openModal('dev-modal'); keyBuffer = ""; }
+            
+            const display = document.getElementById('ghost-input-display');
+            ghostText += char; if (ghostText.length > 15) ghostText = ghostText.slice(1);
+            display.innerText = ghostText; display.style.opacity = 1;
+            clearTimeout(ghostTimer);
+            ghostTimer = setTimeout(() => { display.style.opacity = 0; setTimeout(() => ghostText = "", 200); }, 1000);
+        }
+
+        let lastX=0, lastY=0;
+        document.addEventListener('mousemove', e => {
+            const d = Math.hypot(e.clientX-lastX, e.clientY-lastY); lastX=e.clientX; lastY=e.clientY;
+            if(d>5) triggerAction('move', d);
+        });
+        document.addEventListener('mousedown', e => {
+            if(e.button===0) triggerAction('click');
+            if(e.button===2) triggerAction('right-click');
+        });
+        document.addEventListener('wheel', () => triggerAction('scroll', 50));
+        document.getElementById('btn-action').addEventListener('click', e => { e.stopPropagation(); triggerAction('click', 20); });
+
+        // --- 8. VISUALS & SYSTEM ---
+        function showToast(t, m, gold=false) {
+            const el = document.createElement('div'); el.className = 'toast'+(gold?' gold':'');
+            el.innerHTML = `<h4>${t}</h4><p>${m}</p>`;
+            document.getElementById('toast-container').appendChild(el);
+            setTimeout(()=>el.remove(), 5000);
+        }
+        function spawnFloat(txt) {
+            const el = document.createElement('div'); el.className = 'floating-text'; el.innerText = txt;
+            el.style.left = (window.innerWidth/2 + (Math.random()-0.5)*100)+'px';
+            el.style.top = (window.innerHeight/2 + (Math.random()-0.5)*100)+'px';
+            el.style.color = 'var(--accent)';
+            el.style.fontSize = config.floatSize+'px'; el.style.animationDuration = config.floatDur+'s';
+            document.body.appendChild(el);
+            setTimeout(()=>el.remove(), config.floatDur*1000);
+        }
+        function fireConfetti() {
+            const c = document.getElementById('fx-canvas'); const ctx = c.getContext('2d');
+            c.width = window.innerWidth; c.height = window.innerHeight;
+            let p = []; const cols = ['#FFD700', '#FFF', config.theme === 'neon' ? '#00FF9D' : '#FFD700'];
+            for(let i=0; i<100; i++) p.push({x:c.width/2, y:c.height/2, vx:(Math.random()-0.5)*20, vy:(Math.random()-0.5)*20, life:100, color:cols[Math.floor(Math.random()*cols.length)], size:Math.random()*5+2});
+            function tick() { ctx.clearRect(0,0,c.width,c.height); let a=false; p.forEach(x=>{if(x.life>0){a=true; x.x+=x.vx; x.y+=x.vy; x.vy+=0.5; x.life--; ctx.fillStyle=x.color; ctx.fillRect(x.x,x.y,x.size,x.size);}}); if(a) requestAnimationFrame(tick); }
+            tick();
+        }
+
+        // DEV & SAVE
+        function openModal(id) { document.getElementById(id).style.display='flex'; state.modalOpen=true; if(id==='dev-modal') loadDev(); }
+        function closeModal(id) { document.getElementById(id).style.display='none'; state.modalOpen=false; }
+        function saveRecords() { localStorage.setItem('aphb_v12_rec', JSON.stringify(records)); }
+        function confirmReset() { records = {score:0,clicks:0,scroll:0,move:0}; saveRecords(); state.score=0; state.level=0; document.getElementById('timeline-wrapper').innerHTML=""; document.getElementById('level-badge').innerText="NULA"; updateHUD(); closeModal('reset-modal'); addToTimeline("START", "Odvaha začít znovu.", true); }
+        function loadDev() {
+            document.getElementById('t-gauge').checked = config.showGauge; document.getElementById('t-particles').checked = config.particles;
+            document.getElementById('sel-theme').value = config.theme; setRng('rng-mult','disp-mult',config.multiplier,'x'); setRng('rng-tcd','disp-tcd',config.toastCd,'s');
+        }
+        function setRng(id, dispId, val, suff) { document.getElementById(id).value = val; document.getElementById(dispId).innerText = val + suff; }
+        ['rng-mult','rng-tcd'].forEach(id => { const suff = id.includes('mult')?'x':'s'; document.getElementById(id).addEventListener('input', e=>document.getElementById(id.replace('rng','disp')).innerText=e.target.value+suff); });
+        function saveDev() {
+            config.showGauge = document.getElementById('t-gauge').checked; config.particles = document.getElementById('t-particles').checked;
+            config.theme = document.getElementById('sel-theme').value; config.multiplier = parseFloat(document.getElementById('rng-mult').value);
+            config.toastCd = parseFloat(document.getElementById('rng-tcd').value);
+            localStorage.setItem('aphb_v12_cfg', JSON.stringify(config)); applyTheme(); closeModal('dev-modal');
+        }
+        function applyTheme() { document.body.setAttribute('data-color', config.theme); document.getElementById('rpm-container').style.opacity = config.showGauge?'1':'0'; }
+        function exportConfig() { const s = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(config)); const a = document.createElement('a'); a.href=s; a.download="aphb_config.json"; a.click(); a.remove(); }
+        function importConfig(input) { const f = input.files[0]; if(!f)return; const r = new FileReader(); r.onload = e => { try { config = JSON.parse(e.target.result); applyTheme(); alert("OK."); } catch(x){ alert("Chyba."); }}; r.readAsText(f); }
+        function resetDefaults() { config = JSON.parse(JSON.stringify(DEFAULTS)); loadDev(); }
+
+        // INIT
+        window.onload = () => {
+            applyTheme(); updateHUD(); 
+            addToTimeline("START", "Systém připraven.", true);
+            document.getElementById('subtitle').innerText = getRandom(phrases.slogans);
+        }
+
+    </script>
+</body>
+</html>

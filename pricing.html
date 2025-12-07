@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APHB - Ceník a Plány</title>
+    <style>
+        :root {
+            --bg: #050505;
+            --text-main: #eeeeee;
+            --text-dim: #888;
+            --accent: #FFD700;
+            --accent-glow: rgba(255, 215, 0, 0.15);
+            --font-ui: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            --font-mono: 'Courier New', monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background-color: var(--bg); color: var(--text-main); font-family: var(--font-ui); line-height: 1.6; }
+        a { text-decoration: none; color: inherit; transition: 0.3s; }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        
+        /* Header (Consistent) */
+        header { padding: 30px 0; }
+        .nav-flex { display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-weight: 900; font-size: 24px; letter-spacing: 5px; color: #fff; }
+        .logo span { color: var(--accent); }
+        .social-links a { margin-left: 20px; font-size: 13px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+        .social-links a:hover { color: var(--accent); }
+        .social-links a.active { color: #fff; border-bottom: 1px solid var(--accent); }
+
+        /* Pricing Hero */
+        .pricing-hero { text-align: center; padding: 80px 0 50px 0; }
+        .pricing-hero h1 { font-size: 3.5rem; text-transform: uppercase; margin-bottom: 20px; }
+        .pricing-hero p { color: var(--text-dim); font-size: 1.2rem; max-width: 600px; margin: 0 auto; }
+
+        /* Cards Container */
+        .pricing-grid {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            padding: 50px 0 100px 0;
+            flex-wrap: wrap;
+        }
+
+        /* Pricing Card */
+        .p-card {
+            background: #0f0f0f;
+            border: 1px solid #222;
+            padding: 40px;
+            width: 350px;
+            text-align: center;
+            position: relative;
+            transition: 0.4s;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Popular Card Effect */
+        .p-card.popular {
+            border-color: var(--accent);
+            transform: scale(1.05);
+            background: linear-gradient(180deg, rgba(255,215,0,0.05) 0%, #0f0f0f 100%);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            z-index: 2;
+        }
+        .p-badge {
+            position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%);
+            background: var(--accent); color: #000; padding: 5px 15px;
+            font-weight: bold; text-transform: uppercase; font-size: 12px; letter-spacing: 1px;
+        }
+
+        .p-title { font-size: 1.5rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; color: #fff; }
+        .p-price { font-size: 3.5rem; font-family: var(--font-mono); font-weight: 900; color: #fff; margin: 20px 0; }
+        .p-price span { font-size: 1rem; color: var(--text-dim); font-weight: normal; }
+        .p-desc { color: var(--text-dim); margin-bottom: 30px; font-size: 0.9rem; }
+
+        .p-features { list-style: none; margin-bottom: 40px; flex: 1; text-align: left; padding-left: 20px;}
+        .p-features li { margin-bottom: 15px; color: #ccc; font-size: 0.95rem; display: flex; align-items: center; }
+        .p-features li::before { content: '✓'; color: var(--accent); margin-right: 10px; font-weight: bold; }
+        .p-features li.nope { color: #444; text-decoration: line-through; }
+        .p-features li.nope::before { content: '×'; color: #444; }
+
+        .p-btn {
+            display: block; width: 100%; padding: 15px; text-transform: uppercase; letter-spacing: 1px;
+            font-weight: bold; cursor: pointer; transition: 0.3s;
+            background: transparent; border: 1px solid #444; color: #fff;
+        }
+        .popular .p-btn { background: var(--accent); color: #000; border-color: var(--accent); }
+        .p-btn:hover { background: #fff; color: #000; border-color: #fff; }
+        .popular .p-btn:hover { background: #ffd700; box-shadow: 0 0 20px var(--accent-glow); }
+
+        /* FAQ */
+        .faq { padding: 80px 0; border-top: 1px solid #222; background: #080808; }
+        .faq h2 { text-align: center; margin-bottom: 50px; font-size: 2rem; }
+        .faq-item { max-width: 800px; margin: 0 auto 30px auto; border-bottom: 1px solid #222; padding-bottom: 20px; }
+        .faq-q { font-size: 1.2rem; color: #fff; margin-bottom: 10px; font-weight: bold; }
+        .faq-a { color: var(--text-dim); }
+
+        /* Footer */
+        footer { padding: 60px 0; background: #000; border-top: 1px solid #111; color: #444; font-size: 14px; text-align: center; }
+
+        @media (max-width: 900px) {
+            .pricing-grid { flex-direction: column; align-items: center; }
+            .p-card { width: 100%; max-width: 400px; }
+            .p-card.popular { transform: scale(1); }
+            .nav-flex { flex-direction: column; gap: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container nav-flex">
+            <a href="index.html" class="logo">APHB<span>.PRO</span></a>
+            <nav class="social-links">
+                <a href="features.html">Funkce</a>
+                <a href="pricing.html" class="active">Ceník</a>
+                <a href="aphb_v12.html" style="color:var(--accent); border:1px solid var(--accent); padding: 5px 15px;">SPUSTIT</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container pricing-hero">
+        <h1>Vyber si svůj <span style="color:var(--accent)">osud</span></h1>
+        <p>Transparentní ceny. Žádné skryté poplatky. Platíš pouze svou duší a časem.</p>
+    </div>
+
+    <div class="container pricing-grid">
+        
+        <!-- PLAN 1 -->
+        <div class="p-card">
+            <div class="p-title">Start</div>
+            <div class="p-price">0,-<span> / navždy</span></div>
+            <p class="p-desc">Pro začátečníky, kteří se bojí svého pravého potenciálu.</p>
+            <ul class="p-features">
+                <li>Základní počítání bodů</li>
+                <li>Otáčkoměr výkonu</li>
+                <li class="nope">Respekt kolegů</li>
+                <li class="nope">Rank "Vesmírná Entita"</li>
+                <li class="nope">Pocit nadřazenosti</li>
+            </ul>
+            <a href="aphb_v12.html" class="p-btn">Začít Pomalu</a>
+        </div>
+
+        <!-- PLAN 2 (Highlighted) -->
+        <div class="p-card popular">
+            <div class="p-badge">DOPORUČENO ELONEM</div>
+            <div class="p-title">Borec</div>
+            <div class="p-price">0,-<span> / navždy</span></div>
+            <p class="p-desc">Pro ty, kteří to myslí s prokrastinací vážně.</p>
+            <ul class="p-features">
+                <li>Vše ze Start plánu</li>
+                <li>Neomezený přístup k Egu</li>
+                <li>Zlaté toast notifikace</li>
+                <li>Dev Konzole (Cheat Mode)</li>
+                <li>Okamžitý respekt v open-space</li>
+            </ul>
+            <a href="aphb_v12.html" class="p-btn">ZVOLIT TENTO PLÁN</a>
+        </div>
+
+        <!-- PLAN 3 -->
+        <div class="p-card">
+            <div class="p-title">Enterprise</div>
+            <div class="p-price">0,-<span> / navždy</span></div>
+            <p class="p-desc">Pro korporace, které chtějí nahradit HR oddělení.</p>
+            <ul class="p-features">
+                <li>Vše z plánu Borec</li>
+                <li>Možnost vyhodit kolegu*</li>
+                <li>Prioritní podpora (neexistuje)</li>
+                <li>Vlastní barva (možná)</li>
+                <li>Soulad s GDPR (asi)</li>
+            </ul>
+            <a href="aphb_v12.html" class="p-btn">KONTAKTOVAT NÁS</a>
+        </div>
+
+    </div>
+
+    <div class="faq">
+        <div class="container">
+            <h2>Často kladené otázky (FAQ)</h2>
+            
+            <div class="faq-item">
+                <div class="faq-q">Proč je to zdarma?</div>
+                <div class="faq-a">Protože nejlepší věci v životě jsou zdarma. Vzduch, láska a pocit nadřazenosti nad kolegy v kanceláři.</div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-q">Je to daňově uznatelný náklad?</div>
+                <div class="faq-a">Technicky vzato je cena 0 Kč, takže si do nákladů můžete dát 0 Kč. Finanční úřad to miluje.</div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-q">Funguje to i na Linuxu?</div>
+                <div class="faq-a">Samozřejmě. APHB běží všude, kde běží ego.</div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-q">Můžu dostat slevu?</div>
+                <div class="faq-a">Ano. Při zadání kódu "TOJEBOREC" do konzole získáte slevu 100% z ceny 0 Kč. Gratulujeme.</div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            &copy; 2025 APHB Corp. Ceny jsou smluvní (smlouva s ďáblem).
+        </div>
+    </footer>
+
+</body>
+</html>
