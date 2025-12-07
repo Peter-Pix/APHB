@@ -1,4 +1,4 @@
-# APHB (Aplikace Pro Hustý Borce) v11.0
+# APHB (Aplikace Pro Hustý Borce) v12.0
 
 > "Exekutivní nástroj pro správu ega. Měříme jen to, na čem záleží."
 
@@ -15,7 +15,7 @@ APHB je satirická webová aplikace (SPA), která gamifikuje absolutní nicnedě
 
 ## 🛠️ Instalace
 
-1.  Stáhněte soubor `aphb_v11.html`.
+1.  Stáhněte soubor `aphb_v12.html`.
 2.  Otevřete jej v libovolném moderním prohlížeči (Chrome, Firefox, Safari, Edge).
 3.  To je vše. Žádný server, žádný build process. Čisté HTML/CSS/JS.
 
