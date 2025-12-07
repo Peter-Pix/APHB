@@ -21,7 +21,6 @@
 
         .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
         
-        /* Header (Consistent) */
         header { padding: 30px 0; }
         .nav-flex { display: flex; justify-content: space-between; align-items: center; }
         .logo { font-weight: 900; font-size: 24px; letter-spacing: 5px; color: #fff; }
@@ -30,40 +29,21 @@
         .social-links a:hover { color: var(--accent); }
         .social-links a.active { color: #fff; border-bottom: 1px solid var(--accent); }
 
-        /* Pricing Hero */
         .pricing-hero { text-align: center; padding: 80px 0 50px 0; }
-        .pricing-hero h1 { font-size: 3.5rem; text-transform: uppercase; margin-bottom: 20px; }
+        .pricing-hero h1 { font-size: clamp(2.5rem, 5vw, 3.5rem); text-transform: uppercase; margin-bottom: 20px; }
         .pricing-hero p { color: var(--text-dim); font-size: 1.2rem; max-width: 600px; margin: 0 auto; }
 
-        /* Cards Container */
-        .pricing-grid {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            padding: 50px 0 100px 0;
-            flex-wrap: wrap;
-        }
+        .pricing-grid { display: flex; justify-content: center; gap: 30px; padding: 50px 0 100px 0; flex-wrap: wrap; }
 
-        /* Pricing Card */
         .p-card {
-            background: #0f0f0f;
-            border: 1px solid #222;
-            padding: 40px;
-            width: 350px;
-            text-align: center;
-            position: relative;
-            transition: 0.4s;
-            display: flex;
-            flex-direction: column;
+            background: #0f0f0f; border: 1px solid #222; padding: 40px; width: 350px;
+            text-align: center; position: relative; transition: 0.4s; display: flex; flex-direction: column;
         }
         
-        /* Popular Card Effect */
         .p-card.popular {
-            border-color: var(--accent);
-            transform: scale(1.05);
+            border-color: var(--accent); transform: scale(1.05);
             background: linear-gradient(180deg, rgba(255,215,0,0.05) 0%, #0f0f0f 100%);
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-            z-index: 2;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5); z-index: 2;
         }
         .p-badge {
             position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%);
@@ -91,21 +71,24 @@
         .p-btn:hover { background: #fff; color: #000; border-color: #fff; }
         .popular .p-btn:hover { background: #ffd700; box-shadow: 0 0 20px var(--accent-glow); }
 
-        /* FAQ */
         .faq { padding: 80px 0; border-top: 1px solid #222; background: #080808; }
         .faq h2 { text-align: center; margin-bottom: 50px; font-size: 2rem; }
         .faq-item { max-width: 800px; margin: 0 auto 30px auto; border-bottom: 1px solid #222; padding-bottom: 20px; }
         .faq-q { font-size: 1.2rem; color: #fff; margin-bottom: 10px; font-weight: bold; }
         .faq-a { color: var(--text-dim); }
 
-        /* Footer */
         footer { padding: 60px 0; background: #000; border-top: 1px solid #111; color: #444; font-size: 14px; text-align: center; }
+        .footer-content { display: flex; justify-content: space-between; align-items: center; }
+        .footer-links a { margin-left: 30px; transition: 0.3s; }
+        .footer-links a:hover { color: var(--accent); }
 
         @media (max-width: 900px) {
             .pricing-grid { flex-direction: column; align-items: center; }
             .p-card { width: 100%; max-width: 400px; }
             .p-card.popular { transform: scale(1); }
             .nav-flex { flex-direction: column; gap: 20px; }
+            .footer-content { flex-direction: column; gap: 30px; text-align: center; }
+            .footer-links a { margin: 0 10px; }
         }
     </style>
 </head>
@@ -117,7 +100,8 @@
             <nav class="social-links">
                 <a href="features.html">Funkce</a>
                 <a href="pricing.html" class="active">Ceník</a>
-                <a href="aphb_v12.html" style="color:var(--accent); border:1px solid var(--accent); padding: 5px 15px;">SPUSTIT</a>
+                <a href="https://github.com/Peter-Pix" target="_blank">GitHub</a>
+                <a href="https://peter-pix.github.io/aphb/aphb_v12.html" style="color:var(--accent); border:1px solid var(--accent); padding: 5px 15px;">SPUSTIT</a>
             </nav>
         </div>
     </header>
@@ -141,7 +125,7 @@
                 <li class="nope">Rank "Vesmírná Entita"</li>
                 <li class="nope">Pocit nadřazenosti</li>
             </ul>
-            <a href="aphb_v12.html" class="p-btn">Začít Pomalu</a>
+            <a href="https://peter-pix.github.io/aphb/aphb_v12.html" class="p-btn">Začít Pomalu</a>
         </div>
 
         <!-- PLAN 2 (Highlighted) -->
@@ -157,7 +141,7 @@
                 <li>Dev Konzole (Cheat Mode)</li>
                 <li>Okamžitý respekt v open-space</li>
             </ul>
-            <a href="aphb_v12.html" class="p-btn">ZVOLIT TENTO PLÁN</a>
+            <a href="https://peter-pix.github.io/aphb/aphb_v12.html" class="p-btn">ZVOLIT TENTO PLÁN</a>
         </div>
 
         <!-- PLAN 3 -->
@@ -172,7 +156,7 @@
                 <li>Vlastní barva (možná)</li>
                 <li>Soulad s GDPR (asi)</li>
             </ul>
-            <a href="aphb_v12.html" class="p-btn">KONTAKTOVAT NÁS</a>
+            <a href="https://peter-pix.github.io/aphb/aphb_v12.html" class="p-btn">KONTAKTOVAT NÁS</a>
         </div>
 
     </div>
@@ -204,8 +188,14 @@
     </div>
 
     <footer>
-        <div class="container">
-            &copy; 2025 APHB Corp. Ceny jsou smluvní (smlouva s ďáblem).
+        <div class="container footer-content">
+            <div>
+                &copy; 2025 APHB Corp. Ceny jsou smluvní (smlouva s ďáblem).
+            </div>
+            <div class="footer-links">
+                <a href="https://github.com/Peter-Pix" target="_blank">GitHub</a>
+                <a href="https://peter-pix.github.io/aphb/aphb_v12.html">Spustit App</a>
+            </div>
         </div>
     </footer>
 
